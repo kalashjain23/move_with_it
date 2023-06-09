@@ -1,102 +1,70 @@
 #!/usr/bin/env python3
-"""
-A script to outline the fundamentals of the moveit_py motion planning API.
-"""
 
-import time
-
-# generic ros libraries
+import cv2 as cv
 import rclpy
-from rclpy.logging import get_logger
+from rclpy.node import Node
+from move_with_it.brain import movement
+from cv_bridge import CvBridge
 
-# moveit python library
-from moveit.core.robot_state import RobotState
-from moveit.planning import (
-    MoveItPy,
-    MultiPipelinePlanRequestParameters,
-)
+from geometry_msgs.msg import TwistStamped
+from sensor_msgs.msg import Image
 
-
-def plan_and_execute(
-    robot,
-    planning_component,
-    logger,
-    single_plan_parameters=None,
-    multi_plan_parameters=None,
-    sleep_time=0.0,
-):
-    """Helper function to plan and execute a motion."""
-    # plan to goal
-    logger.info("Planning trajectory")
-    if multi_plan_parameters is not None:
-        plan_result = planning_component.plan(
-            multi_plan_parameters=multi_plan_parameters
-        )
-    elif single_plan_parameters is not None:
-        plan_result = planning_component.plan(
-            single_plan_parameters=single_plan_parameters
-        )
-    else:
-        plan_result = planning_component.plan()
-
-    # execute the plan
-    if plan_result:
-        logger.info("Executing plan")
-        robot_trajectory = plan_result.trajectory
-        robot.execute(robot_trajectory, controllers=[])
-    else:
-        logger.error("Planning failed")
-
-    time.sleep(sleep_time)
-
-
-def main():
-
-    ###################################################################
-    # MoveItPy Setup
-    ###################################################################
-    rclpy.init()
-    logger = get_logger("moveit_py.pose_goal")
-
-    # instantiate MoveItPy instance and get planning component
-    panda = MoveItPy(node_name="moveit_py")
-    panda_arm = panda.get_planning_component("panda_arm")
-    logger.info("MoveItPy instance created")
-
-    ###########################################################################
-    # Plan 1 - set states with predefined string
-    ###########################################################################
-
-    # set plan start state using predefined state
-    panda_arm.set_start_state(configuration_name="ready")
-
-    # set pose goal using predefined state
-    panda_arm.set_goal_state(configuration_name="extended")
-
-    # plan to goal
-    plan_and_execute(panda, panda_arm, logger, sleep_time=3.0)
-
-    ###########################################################################
-    # Plan 3 - set goal state with PoseStamped message
-    ###########################################################################
-
-    # set plan start state to current state
-    panda_arm.set_start_state_to_current_state()
-
-    # set pose goal with PoseStamped message
-    from geometry_msgs.msg import PoseStamped
-
-    pose_goal = PoseStamped()
-    pose_goal.header.frame_id = "panda_link0"
-    pose_goal.pose.orientation.w = 1.0
-    pose_goal.pose.position.x = 0.28
-    pose_goal.pose.position.y = 0.28
-    pose_goal.pose.position.z = 0.5
-    panda_arm.set_goal_state(pose_stamped_msg=pose_goal, pose_link="panda_link8")
-
-    # plan to goal
-    plan_and_execute(panda, panda_arm, logger, sleep_time=3.0)
-
+class Controller(Node):
+    
+    def __init__(self):
+        super().__init__('controller')
+        
+        self.cap_ = cv.VideoCapture(0)
+        self.timer_ = self.create_timer(0.1, self.timer_callback)
+        self.controller_ = self.create_publisher(TwistStamped, '/servo_node/delta_twist_cmds', 10)
+        self.image_publisher_ = self.create_publisher(Image, "frames", 10)
+        self.image_subscriber_ = self.create_subscription(Image, "frames", self.show_image, 10)
+        
+        self.velocity_ = TwistStamped()
+        self.velocity_.header.frame_id = "panda_link0"
+        self.bridge_ = CvBridge()
+        
+    def timer_callback(self):
+        success, image = self.cap_.read()
+        
+        if success:      
+            position = movement(image)
+            x = position[0]
+            y = position[1]
+            
+            if x != 0 and y != 0:
+                if x > 0.65:
+                    self.velocity_.twist.linear.y = -0.7
+                    self.get_logger().info("RIGHT")
+                elif x < 0.55:
+                    self.velocity_.twist.linear.y = 0.7
+                    self.get_logger().info("LEFT")
+                    
+                if y > 0.65:
+                    self.velocity_.twist.linear.x = -0.7
+                    self.get_logger().info("DOWN")
+                elif y < 0.55:
+                    self.velocity_.twist.linear.x = 0.7
+                    self.get_logger().info("UP")
+                
+            self.velocity_.header.stamp = self.get_clock().now().to_msg()
+            self.controller_.publish(self.velocity_)
+            image = cv.flip(image, 1)
+            self.image_publisher_.publish(self.bridge_.cv2_to_imgmsg(image))
+            
+    def show_image(self, data):
+        frame = self.bridge_.imgmsg_to_cv2(data)
+        cv.imshow('Controller', frame)
+        cv.waitKey(1)
+        
+def main(args=None):
+    rclpy.init(args=args)
+    controller = Controller()
+    rclpy.spin(controller)
+    
+    controller.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == "__main__":
     main()
+    

@@ -30,4 +30,6 @@ def movement(image):
             """ Storing the coordinates of the wrist """
             wrist = hand_landmark.landmark[mp_hands.HandLandmark.WRIST]
             
-            return wrist.x, wrist.y
+            return [wrist.x, wrist.y]
+        
+    return [0, 0]
