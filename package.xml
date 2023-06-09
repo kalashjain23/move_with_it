@@ -7,6 +7,13 @@
   <maintainer email="kalashjain513@gmail.com">kalash</maintainer>
   <license>Apache License 2.0</license>
 
+  <depend>rclpy</depend>
+  <depend>moveit</depend>
+  <exec_depend>python3-mediapipe-pip</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
