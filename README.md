@@ -35,3 +35,5 @@ ros2 launch move_with_it main.launch.py
 ```  
 *Now you can enjoy controlling the robotic arm with just your gestures!! (ik it's fun) :D*
 
+https://github.com/kalashjain23/move_with_it/assets/97672680/5036ec3a-714d-4d11-baaf-d3dcf45c4306
+
