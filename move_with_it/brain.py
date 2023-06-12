@@ -28,8 +28,8 @@ def movement(image):
         for hand_landmark in results.multi_hand_landmarks:
             
             """ Storing the coordinates of the wrist """
-            wrist = hand_landmark.landmark[mp_hands.HandLandmark.WRIST]
+            index_tip = hand_landmark.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP]
             
-            return [wrist.x, wrist.y]
+            return [index_tip.x, index_tip.y]
         
     return [0, 0]

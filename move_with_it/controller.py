@@ -34,18 +34,14 @@ class Controller(Node):
             
             if x != 0 and y != 0:
                 if x > 0.65:
-                    self.velocity_.twist.linear.y = -0.7
-                    self.get_logger().info("RIGHT")
+                    self.velocity_.twist.linear.y = -0.8
                 elif x < 0.55:
-                    self.velocity_.twist.linear.y = 0.7
-                    self.get_logger().info("LEFT")
+                    self.velocity_.twist.linear.y = 0.8
                     
                 if y > 0.65:
-                    self.velocity_.twist.linear.x = -0.7
-                    self.get_logger().info("DOWN")
+                    self.velocity_.twist.linear.x = -0.8
                 elif y < 0.55:
-                    self.velocity_.twist.linear.x = 0.7
-                    self.get_logger().info("UP")
+                    self.velocity_.twist.linear.x = 0.8
                 
             self.velocity_.header.stamp = self.get_clock().now().to_msg()
             self.controller_.publish(self.velocity_)
